@@ -97,9 +97,9 @@ npm run build
 
 ## Safety and Unfinished Integrations
 
-- The specified strategy names Bollinger Bands and RSI but supplies no entry rules or thresholds. No rules are invented. The backend `/api/bot/start` endpoint refuses all starts, and no purchase requests are implemented.
+- The private strategy uses standard MACD 12/26/9: a fresh bullish MACD-line crossover above its signal line indicates Rise; a fresh bearish crossover below indicates Fall. It requires sufficient validated ticks and emits no repeat signal while the crossover persists. Entry evaluation is blocked while a contract is unsettled.
 - Real-money execution is not implemented or enabled. The current safety lock is deliberate, not a trading simulation.
-- Demo order placement, contract proposal validation, duplicate-order recovery, settlement subscriptions, restart recovery, and risk enforcement against open exposure require the owner's strategy specification and controlled testing before implementation.
+- Demo order placement, contract proposal validation, duplicate-order recovery, settlement subscriptions, restart recovery, and risk enforcement against open exposure remain unimplemented and require controlled testing before any trading can be enabled.
 - Stake limits are validated for basic type/range, but account-specific contract limits are not yet queried. Risk configuration is not represented as a guarantee against losses on already-purchased contracts.
 - OAuth account retrieval and token storage are implemented against the documented account endpoint, but this workspace has no Deriv or Supabase credentials; end-to-end authorization, account balances, and mobile deep links still require integration testing with registered applications.
 - A native callback URI scheme must be registered in the generated Android/iOS projects and Deriv OAuth settings before native authorization can complete.

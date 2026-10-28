@@ -183,7 +183,12 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .stat-item strong.positive { color: var(--green); }
 .stat-item strong.negative { color: var(--red); }
 .account-actions { display: flex; align-items: center; gap: 10px; margin-top: 28px; padding-top: 12px; border-top: 1px solid #f0f0eb; }
-.account-actions select { max-width: 250px; height: 33px; padding: 0 8px; border: 1px solid #e8e8e0; border-radius: 3px; background: white; color: #65665e; font-size: 10px; }
+.account-mode-switch { height: 32px; flex: 0 0 auto; display: inline-flex; padding: 3px; border: 1px solid #e8e7df; border-radius: 5px; background: #f7f7f2; }
+.account-mode-switch button { min-width: 57px; padding: 0 10px; border: 0; border-radius: 3px; background: transparent; color: #85857c; cursor: pointer; font-size: 9px; font-weight: 600; transition: background .16s, color .16s, box-shadow .16s; }
+.account-mode-switch button.active { background: white; color: #55480e; box-shadow: 0 1px 3px rgba(37,36,23,.12); }
+.account-mode-switch button[aria-pressed="true"]:last-child { color: #a44f43; }
+.account-current { overflow: hidden; color: #73746b; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.account-actions select { max-width: 210px; height: 32px; padding: 0 8px; border: 1px solid #e8e8e0; border-radius: 3px; background: white; color: #65665e; font-size: 9px; }
 .account-none { color: #a0a097; font-size: 10px; }
 .account-action-buttons { display: flex; gap: 10px; margin-left: auto; }
 .small-outline, .small-link { min-height: 31px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 9px; border: 1px solid #e7e6dc; border-radius: 3px; background: white; color: #5f5e54; font-size: 9px; font-weight: 600; cursor: pointer; }
@@ -416,6 +421,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .stat-label { min-height: 24px; font-size: 7px; }
   .stat-item strong { font-size: 11px; }
   .account-actions { flex-wrap: wrap; gap: 7px; }
+  .account-current { max-width: calc(100% - 130px); }
   .account-actions select { max-width: 100%; flex: 1 1 100%; }
   .account-action-buttons { width: 100%; margin-left: 0; justify-content: flex-end; }
   .console-heading { padding: 12px; }

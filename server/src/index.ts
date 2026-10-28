@@ -260,11 +260,11 @@ app.get("/api/trades/summary", protectedRoute, async (req, res) => {
 
 app.get("/api/bot/status", protectedRoute, async (req, res) => {
   const { data: connection } = await admin!.from("deriv_connections").select("status, selected_account_id, account_mode").eq("user_id", req.userId!).maybeSingle();
-  res.json({ status: connection?.selected_account_id ? "Ready" : "Disconnected", executionEnabled: false, reason: "Owner strategy rules and controlled demo validation are not configured." });
+  res.json({ status: connection?.selected_account_id ? "Ready" : "Disconnected", executionEnabled: false, reason: "The private MACD strategy is configured. Controlled Demo order, settlement, and risk validation are still required." });
 });
 
 app.post("/api/bot/start", protectedRoute, (_req, res) => {
-  res.status(409).json({ error: "Trading is disabled until the owner supplies and validates the private strategy rules and controlled demo tests are complete." });
+  res.status(409).json({ error: "Trading remains disabled until controlled Demo tests verify order submission, settlement tracking, and backend risk enforcement." });
 });
 
 app.post("/api/bot/stop", protectedRoute, (_req, res) => {

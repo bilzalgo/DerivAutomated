@@ -282,6 +282,16 @@ function App() {
     } catch (error) { notify("error", error instanceof Error ? error.message : "Could not select that account."); }
   };
 
+  const switchAccountMode = async (mode: "demo" | "real") => {
+    const available = accounts.filter((account) => account.account_type.toLowerCase() === mode);
+    if (!available.length) {
+      notify("information", `No ${mode === "real" ? "Real" : "Demo"} account is available on this Deriv connection.`);
+      return;
+    }
+    const target = available.find((account) => account.account_id === selectedAccount?.account_id) ?? available[0];
+    if (target.account_id !== selectedAccount?.account_id) await selectAccount(target);
+  };
+
   const disconnectDeriv = async () => {
     try {
       await api("/api/deriv/disconnect", { method: "POST", body: "{}" });
@@ -362,7 +372,7 @@ function App() {
         </div>
 
         {tab === "Home" && <HomePage market={market} chartData={chartData} price={displayPrice} notify={notify} />}
-        {tab === "G-Squad" && <BotPage profile={profile} accounts={accounts} selectedAccount={selectedAccount} accountBusy={accountBusy} refreshAccounts={refreshAccounts} selectAccount={selectAccount} connectDeriv={connectDeriv} disconnectDeriv={disconnectDeriv} summary={summary} botStatus={botStatus} botReason={botReason} startBot={startBot} stopBot={stopBot} />}
+        {tab === "G-Squad" && <BotPage profile={profile} accounts={accounts} selectedAccount={selectedAccount} accountBusy={accountBusy} refreshAccounts={refreshAccounts} selectAccount={selectAccount} switchAccountMode={switchAccountMode} connectDeriv={connectDeriv} disconnectDeriv={disconnectDeriv} summary={summary} botStatus={botStatus} botReason={botReason} startBot={startBot} stopBot={stopBot} />}
         {tab === "Configure" && <ConfigurePage config={config} setConfig={setConfig} saveConfig={saveConfig} busy={configBusy} loaded={configLoaded} account={selectedAccount} />}
         {tab === "Subscribe" && <SubscribePage profile={profile} onSubscribe={() => notify("information", "Subscriptions Coming Soon")} />}
       </main>
@@ -474,7 +484,7 @@ function HomePage({ market, chartData, price, notify }: { market: ReturnType<typ
 
 function BotPage(props: {
   profile: Profile | null; accounts: DerivAccount[]; selectedAccount: DerivAccount | null; accountBusy: boolean;
-  refreshAccounts: () => void; selectAccount: (account: DerivAccount) => void; connectDeriv: () => void; disconnectDeriv: () => void;
+  refreshAccounts: () => void; selectAccount: (account: DerivAccount) => void; switchAccountMode: (mode: "demo" | "real") => void; connectDeriv: () => void; disconnectDeriv: () => void;
   summary: { profitLoss: number; wins: number; losses: number; winRate: number | null } | null;
   botStatus: string; botReason: string; startBot: () => void; stopBot: () => void;
 }) {
@@ -487,6 +497,8 @@ function BotPage(props: {
     if (props.selectedAccount) append(`Deriv account selected: ${props.selectedAccount.account_id} (${props.selectedAccount.account_type}).`, "success");
   }, [props.selectedAccount?.account_id, props.selectedAccount?.account_type]);
   const balance = props.selectedAccount ? `${props.selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${props.selectedAccount.currency}` : "--";
+  const accountMode = props.selectedAccount ? (props.selectedAccount.account_type.toLowerCase() === "real" ? "real" : "demo") : null;
+  const modeAccounts = accountMode ? props.accounts.filter((account) => account.account_type.toLowerCase() === accountMode) : [];
   const fmtMoney = (value: number | null) => value === null ? "--" : `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}`;
 
   return <div className="bot-page">
@@ -500,7 +512,7 @@ function BotPage(props: {
           <Stat label="Losses" value={props.summary ? String(props.summary.losses) : "--"} icon={<X size={15} />} tone="negative" />
           <Stat label="Win rate" value={props.summary?.winRate === null || props.summary?.winRate === undefined ? "--" : `${(props.summary.winRate * 100).toFixed(1)}%`} icon={<Activity size={15} />} />
         </div>
-        <div className="account-actions">{props.accounts.length ? <select aria-label="Select Deriv account" value={props.selectedAccount?.account_id ?? ""} onChange={(event) => { const account = props.accounts.find((item) => item.account_id === event.target.value); if (account) props.selectAccount(account); }}><option value="" disabled>Select an account</option>{props.accounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.account_id} · {account.account_type} · {account.currency}</option>)}</select> : <span className="account-none">{props.accountBusy ? "Refreshing account..." : "No Deriv account connected"}</span>}<div className="account-action-buttons">{props.accounts.length ? <><button className="small-outline" onClick={props.refreshAccounts}>Refresh</button><button className="small-link" onClick={props.disconnectDeriv}>Disconnect</button></> : <button className="small-outline" onClick={props.connectDeriv}>Connect Deriv <ArrowUpRight size={14} /></button>}</div></div>
+        <div className="account-actions">{props.accounts.length ? <><div className="account-mode-switch" role="group" aria-label="Deriv account mode"><button type="button" className={accountMode === "demo" ? "active" : ""} aria-pressed={accountMode === "demo"} onClick={() => props.switchAccountMode("demo")}>Demo</button><button type="button" className={accountMode === "real" ? "active" : ""} aria-pressed={accountMode === "real"} onClick={() => props.switchAccountMode("real")}>Real</button></div><span className="account-current">{props.selectedAccount ? `${props.selectedAccount.account_id} · ${props.selectedAccount.currency}` : "Select an account"}</span>{modeAccounts.length > 1 && <select aria-label={`Select ${accountMode} Deriv account`} value={props.selectedAccount?.account_id ?? ""} onChange={(event) => { const account = modeAccounts.find((item) => item.account_id === event.target.value); if (account) props.selectAccount(account); }}>{modeAccounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.account_id} · {account.currency}</option>)}</select>}</> : <span className="account-none">{props.accountBusy ? "Refreshing account..." : "No Deriv account connected"}</span>}<div className="account-action-buttons">{props.accounts.length ? <><button className="small-outline" onClick={props.refreshAccounts}>Refresh</button><button className="small-link" onClick={props.disconnectDeriv}>Disconnect</button></> : <button className="small-outline" onClick={props.connectDeriv}>Connect Deriv <ArrowUpRight size={14} /></button>}</div></div>
       </section>
 
       <section className="panel bot-control-card">
@@ -517,7 +529,7 @@ function BotPage(props: {
       <div className="console-foot"><span>Strategy details are private</span><span><LockIcon /> Secrets are never shown</span></div>
     </section>
 
-    <section className="safety-banner"><ShieldCheck size={17} /><div><strong>Execution is currently disabled</strong><span>Owner strategy rules and controlled demo validation are required before any contract can be placed.</span></div><span className="safety-tag">SAFETY LOCK</span></section>
+    <section className="safety-banner"><ShieldCheck size={17} /><div><strong>Execution is currently disabled</strong><span>The private MACD rule is configured. Controlled Demo order, settlement, and risk validation are still required.</span></div><span className="safety-tag">SAFETY LOCK</span></section>
   </div>;
 }
 
