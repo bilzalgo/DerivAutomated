@@ -142,20 +142,28 @@ alter table public.subscriptions enable row level security;
 alter table public.notifications enable row level security;
 alter table public.operational_logs enable row level security;
 
+drop policy if exists "Users can read own profile" on public.profiles;
 create policy "Users can read own profile" on public.profiles
   for select using ((select auth.uid()) = id);
+drop policy if exists "Users can manage own configuration" on public.user_configurations;
 create policy "Users can manage own configuration" on public.user_configurations
   for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "Users can read own sessions" on public.trading_sessions;
 create policy "Users can read own sessions" on public.trading_sessions
   for select using ((select auth.uid()) = user_id);
+drop policy if exists "Users can read own trades" on public.trades;
 create policy "Users can read own trades" on public.trades
   for select using ((select auth.uid()) = user_id);
+drop policy if exists "Users can read own subscription" on public.subscriptions;
 create policy "Users can read own subscription" on public.subscriptions
   for select using ((select auth.uid()) = user_id);
+drop policy if exists "Users can read own notifications" on public.notifications;
 create policy "Users can read own notifications" on public.notifications
   for select using ((select auth.uid()) = user_id);
+drop policy if exists "Users can update own notifications" on public.notifications;
 create policy "Users can update own notifications" on public.notifications
   for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "Users can read own operational logs" on public.operational_logs;
 create policy "Users can read own operational logs" on public.operational_logs
   for select using ((select auth.uid()) = user_id);
 

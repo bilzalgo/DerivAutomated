@@ -31,6 +31,7 @@ Open `http://localhost:5173`. The server runs on port 3001. The splash screen is
 | `SUPABASE_URL` | Supabase project URL used by the API |
 | `SUPABASE_ANON_KEY` | Supabase public anon key used by the API to validate user sessions |
 | `SUPABASE_SERVICE_ROLE_KEY` | Backend-only key for user-scoped API operations; never expose to a client |
+| `SUPABASE_DB_URL` | Private Supabase PostgreSQL session-pooler URL used only by the migration release job |
 | `VITE_SUPABASE_URL` | Supabase project URL bundled into the client |
 | `VITE_SUPABASE_ANON_KEY` | Public Supabase anon key bundled into the client |
 | `DERIV_CLIENT_ID` | OAuth 2.0 client ID registered with Deriv |
@@ -46,9 +47,13 @@ Never commit `.env` or use a Supabase service-role key in a `VITE_` variable. Th
 ## Supabase Setup
 
 1. Create a Supabase project and enable email/password authentication.
-2. Apply the migration in `supabase/migrations`.
+2. Set `SUPABASE_DB_URL` to the project's PostgreSQL **session pooler** connection URL from Supabase's Connect panel. Use its TLS settings and keep the database password private.
 3. Configure the project's allowed auth redirect URLs for local development and the deployed app.
 4. Set the Supabase URL and keys in the environment.
+
+Heroku runs `npm run db:migrate` as a release phase before starting the web dyno. The migration runner stores applied filenames and SHA-256 checksums in the private `app_private.schema_migrations` table, serializes concurrent releases with a PostgreSQL advisory lock, skips previously applied migrations, and fails the release if migration execution fails. Add future schema changes as new ordered `.sql` files; do not edit an applied migration. The initial migration is idempotent so it can also reconcile tables and policies already created manually.
+
+For local development, set `SUPABASE_DB_URL`, run `npm run build`, then `npm run db:migrate`. This creates or updates the tables automatically; manual SQL editor execution is no longer needed.
 
 Supabase Auth stores password hashes. The profile trigger assigns a unique `GSQ-` account ID and a Free plan. Row-level security restricts profile, settings, trading, subscription, notification, and operational-log rows by authenticated user. Deriv OAuth states and encrypted credentials are service-role-only.
 
@@ -86,7 +91,7 @@ Set `VITE_API_URL` to the public HTTPS backend origin before `mobile:sync`; Vite
 
 ## Heroku Deployment
 
-The root `package.json` includes a `heroku-postbuild` script and the `start` command serves the API and built client from one Node process. Configure all server and `VITE_` variables in Heroku Config Vars, apply the Supabase migration, register the HTTPS OAuth callback with Deriv, then deploy the repository. Set `APP_ORIGIN` to the exact HTTPS app origin. Use Heroku-managed TLS and secret config vars; do not put credentials in the repository.
+The root `package.json` includes a `heroku-postbuild` script, and the `Procfile` runs migrations before the `start` command serves the API and built client from one Node process. Configure server, `VITE_`, and database variables in Heroku Config Vars, register the HTTPS OAuth callback with Deriv, then deploy the repository. Set `APP_ORIGIN` to the exact HTTPS app origin. Use Heroku-managed TLS and secret config vars; do not put credentials in the repository.
 
 ## Checks
 
@@ -103,4 +108,4 @@ npm run build
 - Stake limits are validated for basic type/range, but account-specific contract limits are not yet queried. Risk configuration is not represented as a guarantee against losses on already-purchased contracts.
 - OAuth account retrieval and token storage are implemented against the documented account endpoint, but this workspace has no Deriv or Supabase credentials; end-to-end authorization, account balances, and mobile deep links still require integration testing with registered applications.
 - A native callback URI scheme must be registered in the generated Android/iOS projects and Deriv OAuth settings before native authorization can complete.
-- Production migration execution, backup/restore drills, monitoring, and security review remain deployment tasks.
+- Production backup/restore drills, monitoring, and security review remain deployment tasks.
