@@ -1,4 +1,5 @@
 Build a modern, responsive, mobile-first automated trading web application named G-SQUAD.
+this application will be deployed to heruko platform and host there
 
 DESIGN:
 
