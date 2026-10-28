@@ -9,9 +9,9 @@ import { decryptToken, encryptToken, pkcePair } from "./security";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL?.trim();
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim();
 const appOrigin = process.env.APP_ORIGIN ?? "http://localhost:5173";
 const derivClientId = process.env.DERIV_CLIENT_ID;
 const derivRedirectUri = process.env.DERIV_REDIRECT_URI;
@@ -21,6 +21,15 @@ const admin = supabaseUrl && supabaseServiceKey
 const authClient = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } })
   : null;
+
+function missingSupabaseVariables(): string[] {
+  const required: Array<[string, string | undefined]> = [
+    ["SUPABASE_URL", supabaseUrl],
+    ["SUPABASE_ANON_KEY", supabaseAnonKey],
+    ["SUPABASE_SERVICE_ROLE_KEY", supabaseServiceKey],
+  ];
+  return required.filter(([, value]) => !value).map(([name]) => name);
+}
 
 declare global {
   namespace Express {
@@ -35,7 +44,11 @@ app.use(express.json({ limit: "32kb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-8", legacyHeaders: false }));
 
 function requireBackend(_req: Request, res: Response, next: NextFunction) {
-  if (!admin || !authClient) return res.status(503).json({ error: "Authentication backend is not configured." });
+  if (!admin || !authClient) {
+    const missing = missingSupabaseVariables();
+    const detail = missing.length ? ` Missing server config vars: ${missing.join(", ")}.` : " Check that the Supabase server config vars are valid.";
+    return res.status(503).json({ error: `Authentication backend is not configured.${detail}`, missingEnvironmentVariables: missing });
+  }
   next();
 }
 
@@ -61,10 +74,21 @@ function routeError(res: Response, error: unknown) {
 }
 
 app.get("/api/health", (_req, res) => {
+  const missingSupabase = missingSupabaseVariables();
+  const missingDerivOAuth = [
+    ["DERIV_CLIENT_ID", derivClientId],
+    ["DERIV_REDIRECT_URI", derivRedirectUri],
+    ["DERIV_TOKEN_ENCRYPTION_KEY", process.env.DERIV_TOKEN_ENCRYPTION_KEY],
+  ].filter(([, value]) => !value).map(([name]) => name);
+  const missingMarketData = process.env.VITE_DERIV_APP_ID?.trim() ? [] : ["VITE_DERIV_APP_ID"];
   res.json({
     status: "ok",
-    authenticationConfigured: Boolean(admin && authClient),
-    derivOAuthConfigured: Boolean(derivClientId && derivRedirectUri && process.env.DERIV_TOKEN_ENCRYPTION_KEY),
+    authenticationConfigured: missingSupabase.length === 0 && Boolean(admin && authClient),
+    missingSupabaseVariables: missingSupabase,
+    derivOAuthConfigured: missingDerivOAuth.length === 0,
+    missingDerivOAuthVariables: missingDerivOAuth,
+    marketDataConfigured: missingMarketData.length === 0,
+    missingMarketDataVariables: missingMarketData,
   });
 });
 
